@@ -1,15 +1,27 @@
 class Logger {
   reqLog(socket) {
-    console.log(socket);
-    if (socket.length > 1) {
-      console.log(socket[0] + ": ", socket[1]);
+    if (socket[1].length !== 0) {
+      console.log(
+        new Date(new Date().toUTCString().substr(0, 25)),
+        socket[0],
+        socket[1]
+      );
     } else {
-      console.log(socket[0] + ": ", "no params");
+      console.log(
+        new Date(new Date().toUTCString().substr(0, 25)),
+        socket[0],
+        "no params"
+      );
     }
   }
 
-  respLog(name, payload) {
-    console.log(name, payload);
+  respLog(name, payload, msg) {
+    console.log(
+      new Date(new Date().toUTCString().substr(0, 25)),
+      name,
+      JSON.stringify(payload),
+      msg
+    );
   }
 }
 

@@ -40,8 +40,10 @@ io.on("connection", socket => {
 
   // lobby sockets
   socket.on("rqst_rooms", () => {
-    console.log(
-      `rqst_rooms: ', 'no params. Return: ${Lobby.rooms.length} rooms`
+    Logger.respLog(
+      "resp_rooms",
+      "rooms length: " + Lobby.rooms.length,
+      "success"
     );
     socket.emit("resp_rooms", Lobby.getRooms());
   });
@@ -52,8 +54,8 @@ io.on("connection", socket => {
   // room sockets
   socket.on("rqst_ingame_userlist", () => Lobby.getUserList(socket));
   socket.on("rqst_ingame_userinfo", data => Lobby.getUserInfo(data, socket));
-  socket.on("rqst_ingame_imready", () => {});
-  socket.on("rqst_ingame_state", () => {});
+  socket.on("rqst_ingame_imready", () => Lobby.ready(socket, io));
+  socket.on("rqst_ingame_state", () => Lobby.getState(socket));
 });
 
 http.listen(8080, () => console.log("server started"));

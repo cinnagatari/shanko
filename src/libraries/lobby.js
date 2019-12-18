@@ -17,7 +17,7 @@ class Lobby {
   getRooms() {
     return {
       retcode: 0,
-      roomlist: this.rooms
+      roomlist: this.rooms.map(room => room.filterLobby())
     };
   }
 
@@ -26,30 +26,31 @@ class Lobby {
     new Array(config[rank].ROOMS_1 + config[rank].ROOMS_2)
       .fill(0)
       .map((v, i) => config[rank].ROOM_NUM + i)
-      .forEach((n, i) => rooms.push(new Room(n, i, rank)));
+      .forEach((n, i) => {
+        rooms.push(new Room(n, i, rank));
+      });
     return rooms;
   }
 
   roomEnter(data, socket, io) {
     let room = this.findRoom(data.roomnumber);
     if (room === -1) {
-      console.log("resp_room_enter: ", "{ retcode: 2 } - room not found");
+      Logger.respLog("resp_room_enter", { retcode: 2 }, "room not found");
       socket.emit("resp_room_enter", { retcode: 2 });
       return;
     }
-    if (this.rooms[room].players.length > config.MAXPLAYERS - 1) {
-      console.log("resp_room_enter: ", "{ retcode: 1 } - room full");
+    if (this.rooms[room].findSeat() === -1) {
+      Logger.respLog("resp_room_enter", { retcode: 1 }, "room full");
       socket.emit("resp_room_enter", { retcode: 1 });
+      return;
     }
     let user = Users.getUser(socket.id);
-    // good to enter
     if (user) {
       user.room = data.roomnumber;
       this.rooms[room].enter(user, socket, io);
-      Logger.respLog("resp_room_enter", { retcode: 2 });
       return;
     }
-    console.log("resp_room_enter: ", "{ retcode: 2 } - unknown error");
+    Logger.respLog("resp_room_enter", { retcode: 2 }, "unknown error");
     socket.emit("resp_room_enter", { retcode: 2 });
   }
 
@@ -60,7 +61,7 @@ class Lobby {
       this.rooms[room].leave(user, socket, io);
       return;
     }
-    console.log("resp_room_leave: ", "{ retcode: 1} - user or room not found");
+    Logger.respLog("resp_room_leave", { retcode: 1 }, "user or room not found");
     socket.emit("resp_room_leave", { retcode: 1 });
   }
 
@@ -77,9 +78,10 @@ class Lobby {
       let room = this.findRoom(user.room);
       this.rooms[room].getUserList(socket);
     } else {
-      console.log(
-        "resp_ingame_userlist: ",
-        "{ retcode: 1 } - user or room not found"
+      Logger.respLog(
+        "resp_ingame_userlist",
+        { retcode: 1 },
+        "user or room not found"
       );
       socket.emit("resp_ingame_userlist", { retcode: 1 });
     }
@@ -97,16 +99,42 @@ class Lobby {
           imgnumber: user2.imgnumber,
           gender: user2.gender
         };
-        console.log("resp_ingame_userinfo: ", u);
+        Logger.respLog("resp_ingame_userinfo", u, "success");
         socket.emit("resp_ingame_userinfo", u);
         return;
       }
     }
-    console.log(
-      "resp_ingame_userinfo: ",
-      "{retcode: 1} - user or room not found"
+
+    Logger.respLog(
+      "resp_ingame_userinfo",
+      { retcode: 1 },
+      "user or room not found"
     );
     socket.emit("resp_ingame_userinfo", { retcode: 1 });
+  }
+
+  ready(socket, io) {
+    let user = Users.getUser(socket.id);
+    if (user && user.room) {
+      let room = this.findRoom(user.room);
+      this.rooms[room].ready(user, io);
+    }
+  }
+
+  getState(socket) {
+    let user = Users.getUser(socket.id);
+    if (user && user.room) {
+      let room = this.findRoom(user.room);
+      Logger.respLog("resp_ingame_state", this.rooms[room], "success");
+      socket.emit("resp_ingame_state", this.rooms[room]);
+      return;
+    }
+    Logger.respLog(
+      "resp_ingame_state",
+      { retcode: 1 },
+      "user or room not found"
+    );
+    socket.emit("resp_ingame_state", { retcode: 1 });
   }
 }
 
